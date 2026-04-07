@@ -106,56 +106,150 @@ pip install -r requirements.txt
 
 ### Command Line Interface
 
-Generate mockups using individual scripts:
+Generate mockups using individual scripts with the following syntax:
+
+```bash
+# Generic syntax
+.venv/bin/python3 mockups/<product>_mockup.py --product <template.png> --design <design.png> --output <output.png> [OPTIONS]
+```
+
+**Required Arguments:**
+- `--product`: Path to product template image (e.g., `products/bottle.png`)
+- `--design`: Path to design/image file (e.g., `testImages/image1.png`)
+- `--output`: Output file path for the mockup result (e.g., `results/bottle-result.png`)
+
+**Optional Arguments:**
+- `--scale`: Scale factor for the design (default: 1.0)
+- `--opacity`: Opacity percentage (0-100, default: 95)
+- `--shift-y`: Vertical shift in pixels (default: 50)
+- `--shift-x`: Horizontal shift in pixels (default: 0)
+- `--fuzz`: Color fuzz percentage for edge detection (default: 15)
+- `--inset`: Inset margin in pixels (default: 2)
+- `--no-cache`: Disable caching for this run
+
+**Examples:**
 
 ```bash
 # Bottle mockup
-python mockups/bottle_mockup.py -i products/image1.png -o tests/bottle-result.png
+.venv/bin/python3 mockups/bottle_mockup.py --product products/bottle.png --design testImages/image1.png --output results/bottle-result.png
 
-# T-shirt mockup
-python mockups/tshirt_mockup.py -i products/image1.png -o tests/tshirt-result.png
-
-# Mug mockup
-python mockups/mug_mockup.py -i products/image1.png -o tests/mug-result.png
+# Bottle with custom scale and opacity
+.venv/bin/python3 mockups/bottle_mockup.py --product products/bottle.png --design testImages/image1.png --output results/bottle-result.png --scale 1.2 --opacity 90
 
 # Clock mockup
-python mockups/clock_mockup.py -i products/image1.png -o tests/clock-result.png
+.venv/bin/python3 mockups/clock_mockup.py --product products/clock.png --design testImages/image3.png --output results/mugresult.png
+
+# T-shirt mockup
+.venv/bin/python3 mockups/tshirt_mockup.py --product products/tshirt.png --design testImages/image1.png --output results/tshirt-result.png
+
+# Mug mockup
+.venv/bin/python3 mockups/mug_mockup.py --product products/mug.png --design testImages/image1.png --output results/mug-result.png
 
 # Frame mockup
-python mockups/frame_mockup.py -i products/image1.png -o tests/frame-result.png
+.venv/bin/python3 mockups/frame_mockup.py --product products/frame.png --design testImages/image1.png --output results/frame-result.png
 
 # Totebag mockup
-python mockups/totebag_mockup.py -i products/image1.png -o tests/totebag-result.png
+.venv/bin/python3 mockups/totebag_mockup.py --product products/totebag.png --design testImages/image1.png --output results/totebag-result.png
 
 # Pillow mockup
-python mockups/pillow_mockup.py -i products/image1.png -o tests/pillow-result.png
+.venv/bin/python3 mockups/pillow_mockup.py --product products/pillow.png --design testImages/image1.png --output results/pillow-result.png
 ```
+
+### FastAPI REST Server
+
+Start the API server for programmatic mockup generation via HTTP:
+
+```bash
+# Start the server (runs on http://localhost:8000)
+.venv/bin/python3 mockups/mockup_api.py
+
+# Server will be available at:
+# - API Docs: http://localhost:8000/docs
+# - ReDoc: http://localhost:8000/redoc
+```
+
+**API Endpoints:**
+
+1. **Single Mockup Generation**
+   ```
+   POST /generate-mockup
+   ```
+   Form parameters:
+   - `product_type`: Product type (bottle, clock, cup, mug, frame, pillow, totebag, tshirt, sweatshirt)
+   - `product_image`: Upload product template image file
+   - `target_image`: Upload design/image file
+   - `scale`: Scale factor (optional)
+   - `opacity`: Opacity percentage (optional)
+   - `shift_x`: Horizontal shift (optional)
+   - `shift_y`: Vertical shift (optional)
+   - `warp_amt`: Warp amount (optional)
+   - `fit`: Fit mode (optional)
+
+2. **Generate All Product Mockups**
+   ```
+   POST /generate-all-mockups
+   ```
+   Form parameters:
+   - `target_image`: Upload design/image file (will generate for all product types)
 
 ### Python API
 
-Programmatically generate mockups in your Python code:
+Programmatically generate mockups directly in your Python code:
 
 ```python
-from mockups.mockup_api import generate_mockup
+from mockups.mockup_api import GENERATORS
 
 # Generate a bottle mockup
-result = generate_mockup(
-    product_type='bottle',
-    input_image='products/image1.png',
-    output_path='tests/bottle_output.png'
-)
+product_path = 'products/bottle.png'
+design_path = 'testImages/image1.png'
+output_path = 'results/bottle_output.png'
+
+generator = GENERATORS['bottle']
+generator(product_path, design_path, output_path, scale=1.0, opacity=0.95)
 
 # Generate multiple mockups
-products = ['bottle', 'tshirt', 'mug', 'clock', 'frame', 'totebag', 'pillow']
-for product in products:
-    generate_mockup(
-        product_type=product,
-        input_image='products/image1.png',
-        output_path=f'tests/{product}_result.png'
-    )
+product_types = ['bottle', 'clock', 'tshirt', 'mug', 'frame', 'totebag', 'pillow']
+for product_type in product_types:
+    output = f'results/{product_type}_result.png'
+    GENERATORS[product_type](product_path, design_path, output)
 ```
 
-## �� Dependencies
+## ⚙️ Environment Configuration
+
+### .env File Setup (Optional)
+
+For API server features like cloud storage integration with Supabase, create a `.env` file in the `mockups/` directory:
+
+```bash
+# mockups/.env
+
+# Supabase Configuration (Optional - for cloud storage features)
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_api_key
+SUPABASE_BUCKET=mockups
+SUPABASE_BASE_FOLDER=mockups
+
+# Products Base Directory (Optional - defaults to mockups directory)
+PRODUCTS_BASE_DIR=/path/to/products
+```
+
+**Environment Variables Explained:**
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SUPABASE_URL` | No | Empty | Supabase project URL for cloud storage integration |
+| `SUPABASE_KEY` | No | Empty | Supabase API key for authentication |
+| `SUPABASE_BUCKET` | No | `mockups` | Storage bucket name for generated mockups |
+| `SUPABASE_BASE_FOLDER` | No | Empty | Base folder path in Supabase storage |
+| `PRODUCTS_BASE_DIR` | No | Mockups dir | Local directory path where product templates are stored |
+
+**Notes:**
+- The `.env` file is optional. The application works fine without it.
+- If `.env` is not provided, all paths will be relative to the project directory.
+- Supabase integration is only used when both `SUPABASE_URL` and `SUPABASE_KEY` are provided.
+- Add `.env` to your `.gitignore` to keep credentials private (already included in this project).
+
+## 📦 Dependencies
 
 All required packages are listed in `requirements.txt`:
 
